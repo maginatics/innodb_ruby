@@ -58,6 +58,30 @@ class Innodb::DataType
     end
   end
 
+  class VariableIntegerType
+    attr_reader :name, :width
+
+    def initialize(base_type, modifiers, properties)
+      # TODO: unsigned
+      @width = modifiers.fetch(0, 1)
+      @name = Innodb::DataType.make_name(base_type, modifiers, properties)
+    end
+
+    def value(data)
+      width = data.length
+      return 0 if width == 0
+      get_uint(data, 8 * width)
+    end
+
+    def get_uint(data, nbits)
+      BinData::const_get("Uint%dbe" % nbits).read(data)
+    end
+
+    def get_int(data, nbits)
+      BinData::const_get("Int%dbe" % nbits).read(data) ^ (-1 << (nbits - 1))
+    end
+  end
+
   class FloatType
     attr_reader :name, :width
 
@@ -322,6 +346,7 @@ class Innodb::DataType
     :INT        => IntegerType,
     :INT6       => IntegerType,
     :BIGINT     => IntegerType,
+    :VARINT     => VariableIntegerType,
     :FLOAT      => FloatType,
     :DOUBLE     => DoubleType,
     :DECIMAL    => DecimalType,
